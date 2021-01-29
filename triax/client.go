@@ -134,11 +134,7 @@ func (c *Client) apiRequest(ctx context.Context, method, path string, request, r
 	}
 	defer res.Body.Close()
 
-	var buf bytes.Buffer
-	io.Copy(&buf, res.Body)
-
-	if err := json.Unmarshal(buf.Bytes(), &response); err != nil {
-		log.Println(buf.String())
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
 		return res.StatusCode, fmt.Errorf("decoding response failed: %w", err)
 	}
 	return res.StatusCode, nil
