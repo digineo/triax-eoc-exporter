@@ -137,18 +137,15 @@ func (c *Client) apiRequest(ctx context.Context, method, path string, request, r
 		}
 	}
 
-	if Verbose {
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-
-		log.Println(string(body))
-		err = json.Unmarshal(body, &response)
-	} else {
-		err = json.NewDecoder(res.Body).Decode(&response)
+	jsonData, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
 	}
 
+	err = json.Unmarshal(jsonData, &response)
+	if Verbose || err != nil {
+		log.Println(string(jsonData))
+	}
 	if err != nil {
 		return fmt.Errorf("decoding response failed: %w", err)
 	}
