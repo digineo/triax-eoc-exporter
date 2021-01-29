@@ -1,0 +1,26 @@
+run:
+  timeout: 30s
+
+linters:
+  fast: true
+  enable-all: true
+  disable:
+    - dogsled
+    - errcheck
+    - exhaustivestruct
+    - funlen
+    - forbidigo # too many false-positives
+    - gas
+    - gochecknoglobals
+    - gochecknoinits
+    - gocyclo
+    - godox
+    - gofumpt # doesn't handle import order correctly
+    - gomnd
+    - lll
+    - nakedret
+    - nestif # too many false-positives
+    - nolintlint # linter generally have a very small scope, so this wouldn't add any new information
+    - testpackage # useful, but not yet supported by gopls (and other tools)
+    - wsl
+    - nlreturn
