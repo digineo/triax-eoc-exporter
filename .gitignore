@@ -1,4 +1,4 @@
-triax_eoc_exporter
 *.deb
 coverage.txt
 config.toml
+/dist

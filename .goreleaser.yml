@@ -1,0 +1,72 @@
+nfpms:
+  # note that this is an array of nfpm configs
+  -
+    # Name of the package.
+    # Defaults to `ProjectName`.
+    package_name: triax-eoc-exporter
+
+    # You can change the file name of the package.
+    # Default: `{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}`
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+    # Your app's vendor.
+    # Default is empty.
+    vendor: Digineo GmbH
+
+    # Your app's homepage.
+    # Default is empty.
+    homepage: https://www.digineo.de/
+
+    # Your app's maintainer (probably you).
+    # Default is empty.
+    maintainer: Julian Kornberger <jk+github@digineo.de>
+
+    # Your app's description.
+    # Default is empty.
+    description: Prometheus Exporter for Triax EoC Controllers
+
+    # Your app's license.
+    # Default is empty.
+    license: Apache 2.0
+
+    # Formats to be generated.
+    formats:
+      - deb
+
+    # Override default /usr/local/bin destination for binaries
+    bindir: /usr/bin
+
+    # Section.
+    section: default
+
+    # Priority.
+    priority: extra
+
+    # Contents to add to the package.
+    # GoReleaser will automatically add the binaries.
+    contents:
+      - src: debian/triax-eoc-exporter.service
+        dst: /lib/systemd/system/triax-eoc-exporter.service
+
+      - src: debian/default
+        dst: /etc/default/triax-eoc-exporter
+        type: config
+
+      # Sometimes it is important to be able to set the mtime, mode, owner, or group for a file
+      # that differs from what is on the local build system at build time.
+      - src: config/config.example.toml
+        dst: /etc/triax-eoc-exporter/config.toml
+        type: config
+        file_info:
+          mode: 0600
+          mtime: 2008-01-02T15:04:05Z
+          owner: notRoot
+          group: notRoot
+
+    # Scripts to execute during the installation of the package.
+    # Keys are the possible targets during the installation process
+    # Values are the paths to the scripts which will be executed
+    scripts:
+      postinstall: "debian/postinstall.sh"
+      preremove: "debian/preremove.sh"
+      postremove: "debian/postremove.sh"

@@ -1,15 +1,16 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
-	"os"
 	"runtime/debug"
 
-	"git.digineo.de/digineo/triax_eoc_exporter/config"
-	"git.digineo.de/digineo/triax_eoc_exporter/exporter"
+	"git.digineo.de/digineo/triax-eoc-exporter/config"
+	"git.digineo.de/digineo/triax-eoc-exporter/exporter"
+	"git.digineo.de/digineo/triax-eoc-exporter/triax"
 	"github.com/digineo/goldflags"
+
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 // DefaultConfigPath points to the default config file location.
@@ -17,28 +18,32 @@ import (
 var DefaultConfigPath = "./config.toml"
 
 func main() {
-	fmt.Println(goldflags.Banner("Triax EoC Exporter"))
-	log.SetFlags(log.Lshortfile)
 
-	configFile := flag.String("config", DefaultConfigPath, "`PATH` to configuration file")
-	showVersion := flag.Bool("version", false, "print version information and exit")
-	flag.Parse()
+	listenAddress := kingpin.Flag(
+		"web.listen-address",
+		"Address on which to expose metrics and web interface.",
+	).Default(":9809").String()
 
-	if *showVersion {
-		printVersion()
-		os.Exit(0)
-	}
+	configFile := kingpin.Flag(
+		"web.config",
+		"Path to config.toml that contains all the targets.",
+	).Default(DefaultConfigPath).String()
 
-	if *configFile == "" {
-		*configFile = DefaultConfigPath
-	}
+	verbose := kingpin.Flag(
+		"verbose",
+		"Increase verbosity",
+	).Bool()
+
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
 
 	cfg, err := config.LoadFile(*configFile)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	exporter.Start(cfg)
+	triax.Verbose = *verbose
+	exporter.Start(*listenAddress, cfg)
 }
 
 func printVersion() {

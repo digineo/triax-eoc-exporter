@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"git.digineo.de/digineo/triax_eoc_exporter/triax"
+	"git.digineo.de/digineo/triax-eoc-exporter/triax"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

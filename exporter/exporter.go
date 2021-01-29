@@ -6,26 +6,27 @@ import (
 	"net/http"
 	"net/url"
 
-	"git.digineo.de/digineo/triax_eoc_exporter/config"
-	"git.digineo.de/digineo/triax_eoc_exporter/triax"
+	"git.digineo.de/digineo/triax-eoc-exporter/config"
+	"git.digineo.de/digineo/triax-eoc-exporter/triax"
 	"github.com/digineo/goldflags"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func Start(cfg *config.Config) {
-	triax.Verbose = true
-
+func Start(listenAddress string, cfg *config.Config) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, indexHTML, goldflags.VersionString())
 	})
 
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		reg := prometheus.NewRegistry()
-		// TODO: enable (noisy in development)
-		// reg.MustRegister(prometheus.NewGoCollector())
 
 		target := r.URL.Query().Get("target")
+
+		if target == "" {
+			http.Error(w, "target parameter missing", http.StatusBadRequest)
+			return
+		}
 
 		var err error
 		var client *triax.Client
@@ -63,8 +64,8 @@ func Start(cfg *config.Config) {
 		h.ServeHTTP(w, r)
 	})
 
-	log.Printf("Starting exporter on http://%s/", cfg.Bind)
-	log.Fatal(http.ListenAndServe(cfg.Bind, nil))
+	log.Printf("Starting exporter on http://%s/", listenAddress)
+	log.Fatal(http.ListenAndServe(listenAddress, nil))
 }
 
 const indexHTML = `<!doctype html>
