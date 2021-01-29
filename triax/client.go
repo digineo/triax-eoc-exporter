@@ -44,11 +44,9 @@ func NewClient(url string, insecure bool, mac string) (*Client, error) {
 		cookies:  jar,
 	}
 
-	if insecure {
-		// most installations will have a self-signed certificate
-		client.http.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
+	// most installations will have a self-signed certificate
+	client.http.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
 	}
 
 	return client, err
