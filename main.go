@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 
 	"git.digineo.de/digineo/triax_eoc_exporter/config"
+	"git.digineo.de/digineo/triax_eoc_exporter/exporter"
 	"github.com/digineo/goldflags"
 )
 
@@ -36,6 +37,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	exporter.Start(cfg)
 }
 
 func printVersion() {
