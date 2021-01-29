@@ -5,30 +5,32 @@ type EndpointMetrics struct {
 	MAC           string
 	Status        int
 	StatusText    string
-	Uptime        int
+	Uptime        uint
 	Load          float64
 	GhnPortNumber int
 	GhnPortMac    string
-	Clients       map[string]int
+	GhnStats      *GhnStats
+	Clients       struct {
+		Radio24 uint
+		Radio5  uint
+	}
 }
 
 type GhnPort struct {
 	Number              int
-	EndpointsOnline     int
-	EndpointsRegistered int
+	EndpointsOnline     uint
+	EndpointsRegistered uint
 }
 
 type Metrics struct {
-	Up int
-
-	Uptime int
+	Uptime uint
 	Load   float64
 	Memory struct {
-		Total    int
-		Free     int
-		Buffered int
-		Shared   int
+		Total    uint
+		Free     uint
+		Buffered uint
+		Shared   uint
 	}
 	GhnPorts  map[string]*GhnPort
-	Endpoints []*EndpointMetrics
+	Endpoints []EndpointMetrics
 }

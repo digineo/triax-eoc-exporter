@@ -1,11 +1,8 @@
 bind = "127.0.0.1:9809"
 
 [[eoc-controller]]
-# URL for the controller, incl. credentials.
-endpoint = "https://admin:admin@192.168.1.2/"
 
-# Set to true if the TLS certificate is self signed.
-insecure = true
-
-# MAC address, used as identifier in logs and exported metrics.
-mac = "30:1f:9a:12:34:56"
+alias    = "eoc"
+host     = "192.168.1.2"
+username = "admin"
+password = "admin"

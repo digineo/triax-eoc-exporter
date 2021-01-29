@@ -20,31 +20,31 @@ type loginResponse struct {
 	Message string `json:"message"`
 }
 
-const ghnStatusPath = "ghn/status"
+const ghnStatusPath = "ghn/status/"
 
 // response from /api/ghn/status.
 type ghnStatusResponse []struct {
-	Connected int    `json:"connected"`
+	Connected uint   `json:"connected"`
 	Mac       string `json:"mac"`
 	// Name       string `json:"name"`
-	Registered int `json:"registered"`
+	Registered uint `json:"registered"`
 }
 
-const sysinfoPath = "system/info"
+const sysinfoPath = "system/info/"
 
 // response from /api/system/info.
 type sysinfoResponse struct {
 	Memory struct {
-		Buffered int `json:"buffered"`
-		Free     int `json:"free"`
-		Shared   int `json:"shared"`
-		Total    int `json:"total"`
+		Buffered uint `json:"buffered"`
+		Free     uint `json:"free"`
+		Shared   uint `json:"shared"`
+		Total    uint `json:"total"`
 	} `json:"memory"`
-	Uptime int     `json:"uptime"`
+	Uptime uint    `json:"uptime"`
 	Load   float64 `json:"load"`
 }
 
-const syseocPath = "config/system/eoc"
+const syseocPath = "config/system/eoc/"
 
 // response from /config/system/eoc.
 type syseocResponse struct {
@@ -79,14 +79,14 @@ func (mal MacAddrList) Index(s string) int {
 	return -1
 }
 
-const nodeStatusPath = "node/status"
+const nodeStatusPath = "node/status/"
 
 // response from /api/node/status/. The key is a mangeled form
 // of the AP's MAC address, and should be ignored.
 type nodeStatusResponse map[string]struct {
 	Clients    []Clients  `json:"clients"`
 	GhnMaster  string     `json:"ghn_master"`
-	GhnStats   GhnStats   `json:"ghn_stats"`
+	GhnStats   *GhnStats  `json:"ghn_stats"`
 	Mac        string     `json:"mac"`
 	Name       string     `json:"name"`
 	Serial     string     `json:"serial"`
@@ -95,7 +95,7 @@ type nodeStatusResponse map[string]struct {
 	Statusid   int        `json:"statusid"`
 	Sysinfo    struct {
 		Load   float64 `json:"load"`
-		Uptime int     `json:"uptime"`
+		Uptime uint    `json:"uptime"`
 	} `json:"sysinfo"`
 }
 
@@ -109,25 +109,25 @@ type GhnStats struct {
 	Error  string `json:"error"`
 	Frames string `json:"frames"`
 	Lpdus  string `json:"lpdus"`
-	Rxbps  int    `json:"rxbps"`
-	Txbps  int    `json:"txbps"`
+	Rxbps  uint   `json:"rxbps"`
+	Txbps  uint   `json:"txbps"`
 }
 
 type Counters struct {
-	RxBcast  int   `json:"rx_bcast"`
-	RxByte   int64 `json:"rx_byte"`
-	RxDrop   int   `json:"rx_drop"`
-	RxErr    int   `json:"rx_err"`
-	RxMcast  int   `json:"rx_mcast"`
-	RxPacket int   `json:"rx_packet"`
-	RxUcast  int   `json:"rx_ucast"`
-	TxBcast  int   `json:"tx_bcast"`
-	TxByte   int64 `json:"tx_byte"`
-	TxDrop   int   `json:"tx_drop"`
-	TxErr    int   `json:"tx_err"`
-	TxMcast  int   `json:"tx_mcast"`
-	TxPacket int   `json:"tx_packet"`
-	TxUcast  int   `json:"tx_ucast"`
+	RxBcast  uint    `json:"rx_bcast"`
+	RxByte   uint64  `json:"rx_byte"`
+	RxDrop   uint    `json:"rx_drop"`
+	RxErr    uint    `json:"rx_err"`
+	RxMcast  float64 `json:"rx_mcast"`
+	RxPacket uint    `json:"rx_packet"`
+	RxUcast  uint    `json:"rx_ucast"`
+	TxBcast  uint    `json:"tx_bcast"`
+	TxByte   uint64  `json:"tx_byte"`
+	TxDrop   uint    `json:"tx_drop"`
+	TxErr    uint    `json:"tx_err"`
+	TxMcast  uint    `json:"tx_mcast"`
+	TxPacket uint    `json:"tx_packet"`
+	TxUcast  uint    `json:"tx_ucast"`
 }
 
 type Ethernet struct {

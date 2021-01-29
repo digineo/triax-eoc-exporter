@@ -7,92 +7,80 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
-	"sync"
+	"time"
 )
 
 type Client struct {
-	MAC      string
 	endpoint *url.URL
-	base     string
 	username string
 	password string
-	http     *http.Client
-	cookies  http.CookieJar
 }
+
+var (
+	// Verbose increases verbosity
+	Verbose bool
+
+	HTTPClient = http.Client{
+		Timeout: time.Second * 10,
+	}
+)
+
+func init() {
+	HTTPClient.Jar, _ = cookiejar.New(nil) // error is always nil
+	HTTPClient.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+}
+
+const sessionCookieName = "sessionId"
 
 // NewClient creates a new Client instance. The URL must embed login
 // credentials.
-func NewClient(url string, insecure bool, mac string) (*Client, error) {
-	username, password, endpoint, err := extractCredentials(url)
-	if err != nil {
-		return nil, &ErrInvalidEndpoint{err}
+func NewClient(endpoint *url.URL) (*Client, error) {
+	userinfo := endpoint.User
+	if userinfo == nil {
+		return nil, ErrMissingCredentials
 	}
 
-	jar, _ := cookiejar.New(nil) // error is always nil
 	client := &Client{
-		MAC:      mac,
 		endpoint: endpoint,
-		base:     endpoint.String(),
-		username: username,
-		password: password,
-		http:     &http.Client{Jar: jar},
-		cookies:  jar,
+		username: userinfo.Username(),
 	}
 
-	// most installations will have a self-signed certificate
-	client.http.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
-	}
+	client.password, _ = userinfo.Password()
 
-	return client, err
+	return client, nil
 }
 
-func extractCredentials(uri string) (user, pass string, endpoint *url.URL, err error) {
-	endpoint, err = url.Parse(uri)
-	if err != nil {
-		return
-	}
-
-	pass, _ = endpoint.User.Password()
-	user = endpoint.User.Username()
-	if pass == "" || user == "" {
-		err = ErrMissingCredentials
-		return
-	}
-
-	endpoint.User = nil
-	endpoint.Path = ""
-	return
-}
-
-func (c *Client) Login(ctx context.Context) error {
-	c.http.Jar.SetCookies(c.endpoint, []*http.Cookie{{
-		Name:   "sessionId",
+func (c *Client) login(ctx context.Context) error {
+	HTTPClient.Jar.SetCookies(c.endpoint, []*http.Cookie{{
+		Name:   sessionCookieName,
 		MaxAge: -1,
 	}})
 
 	req := loginRequest{Username: c.username, Password: c.password}
 	res := loginResponse{}
-	code, err := c.apiRequest(ctx, http.MethodPost, loginPath, &req, &res)
+	err := c.apiRequest(ctx, http.MethodPost, loginPath, &req, &res)
 
 	if err != nil {
 		return err
-	} else if code != http.StatusOK {
-		return &genericError{res.Message}
 	}
 
-	if !strings.HasPrefix(res.Cookie, "sessionId=") {
+	if !strings.HasPrefix(res.Cookie, sessionCookieName+"=") {
 		return &genericError{fmt.Sprintf("unexpected cookie: %s", res.Cookie)}
 	}
 
-	c.http.Jar.SetCookies(c.endpoint, []*http.Cookie{{
-		Name:   "sessionId",
-		Value:  strings.TrimPrefix(res.Cookie, "sessionId="),
+	HTTPClient.Jar.SetCookies(c.endpoint, []*http.Cookie{{
+		Name:   sessionCookieName,
+		Value:  strings.TrimPrefix(res.Cookie, sessionCookieName+"="),
 		Raw:    res.Cookie,
 		MaxAge: 0,
 	}})
@@ -105,22 +93,26 @@ func (c *Client) Login(ctx context.Context) error {
 // JSON encoded, and the JSON response is decoded into the response parameter.
 //
 //	req, res := requestType{...}, responseType{...}
-//	code, err := c.apiRequest(ctx, "POST", "node/status", &req, &res)
-func (c *Client) apiRequest(ctx context.Context, method, path string, request, response interface{}) (int, error) {
-	url := fmt.Sprintf("%s/api/%s", c.base, strings.TrimPrefix(path, "/"))
+//	err := c.apiRequest(ctx, "POST", "node/status", &req, &res)
+func (c *Client) apiRequest(ctx context.Context, method, path string, request, response interface{}) error {
+	url := fmt.Sprintf("%s://%s/api/%s", c.endpoint.Scheme, c.endpoint.Host, strings.TrimPrefix(path, "/"))
+
+	if Verbose {
+		log.Printf("%s %s", method, url)
+	}
 
 	var body io.Reader
 	if request != nil {
 		var buf bytes.Buffer
 		if err := json.NewEncoder(&buf).Encode(request); err != nil {
-			return 0, fmt.Errorf("encoding body failed: %w", err)
+			return fmt.Errorf("encoding body failed: %w", err)
 		}
 		body = &buf
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
-		return 0, fmt.Errorf("cannot construct request: %w", err)
+		return fmt.Errorf("cannot construct request: %w", err)
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -128,68 +120,85 @@ func (c *Client) apiRequest(ctx context.Context, method, path string, request, r
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	res, err := c.http.Do(req)
+	res, err := HTTPClient.Do(req)
 	if err != nil {
-		return 0, fmt.Errorf("request failed: %w", err)
+		return fmt.Errorf("request failed: %w", err)
 	}
 	defer res.Body.Close()
 
-	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
-		return res.StatusCode, fmt.Errorf("decoding response failed: %w", err)
+	if res.StatusCode != http.StatusOK {
+		data, _ := ioutil.ReadAll(res.Body)
+
+		return &ErrUnexpectedStatus{
+			Method: method,
+			URL:    url,
+			Status: res.StatusCode,
+			Body:   data,
+		}
 	}
-	return res.StatusCode, nil
+
+	if Verbose {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+
+		log.Println(string(body))
+		err = json.Unmarshal(body, &response)
+	} else {
+		err = json.NewDecoder(res.Body).Decode(&response)
+	}
+
+	if err != nil {
+		return fmt.Errorf("decoding response failed: %w", err)
+	}
+
+	return nil
 }
 
-func (c *Client) apiGet(ctx context.Context, path string, res interface{}) (int, error) {
+func (c *Client) apiGet(ctx context.Context, path string, res interface{}) error {
 	return c.apiRequest(ctx, http.MethodGet, path, nil, res)
 }
 
-func (c *Client) FetchData(ctx context.Context) (*Metrics, error) {
+func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
 	eoc := syseocResponse{}       // EoC port names
 	sys := sysinfoResponse{}      // uptime, memory
 	ghn := ghnStatusResponse{}    // G.HN port status
 	nodes := nodeStatusResponse{} // data for each AP
 
-	results := map[string]struct {
-		data interface{}
-		err  error
-	}{
-		syseocPath:     {data: &eoc},
-		sysinfoPath:    {data: &sys},
-		ghnStatusPath:  {data: &ghn},
-		nodeStatusPath: {data: &nodes},
+retry:
+	retried := false
+	if err := c.apiGet(ctx, sysinfoPath, &sys); err != nil {
+		if errStatus := err.(*ErrUnexpectedStatus); errStatus.Status == http.StatusUnauthorized && !retried {
+			err = c.login(ctx)
+			if err == nil {
+				retried = true
+				goto retry
+			}
+		}
+
+		return nil, err
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(5)
-
-	for path := range results {
-		// go func(path string) {
-		res := results[path]
-		_, res.err = c.apiGet(ctx, path, res.data)
-		log.Printf("[%s] fetched %s: error = %v", c.MAC, path, res.err)
-		wg.Done()
-		// }(path)
+	if err := c.apiGet(ctx, syseocPath, &eoc); err != nil {
+		return nil, err
 	}
 
-	wg.Wait()
+	if err := c.apiGet(ctx, ghnStatusPath, &ghn); err != nil {
+		return nil, err
+	}
+
+	if err := c.apiGet(ctx, nodeStatusPath, &nodes); err != nil {
+		return nil, err
+	}
 
 	m := &Metrics{}
-	if err := results[sysinfoPath].err; err != nil {
-		return m, fmt.Errorf("sysinfo failed: %w", err)
-	}
-
-	m.Up = 1
 	m.Uptime = sys.Uptime
 	m.Load = sys.Load
 	m.Memory.Total = sys.Memory.Total
 	m.Memory.Free = sys.Memory.Free
 	m.Memory.Shared = sys.Memory.Shared
 	m.Memory.Buffered = sys.Memory.Buffered
-
-	if err := results[ghnStatusPath].err; err != nil {
-		return m, fmt.Errorf("ghn status failed: %w", err)
-	}
 
 	m.GhnPorts = make(map[string]*GhnPort)
 	for _, port := range ghn {
@@ -200,39 +209,42 @@ func (c *Client) FetchData(ctx context.Context) (*Metrics, error) {
 		}
 	}
 
-	if err := results[syseocPath].err; err != nil {
-		return m, fmt.Errorf("eoc status failed: %w", err)
-	}
-
 	for mac := range m.GhnPorts {
 		if i := eoc.MacAddr.Index(mac); i >= 0 {
 			m.GhnPorts[mac].Number = i + 1 // yep.
 		}
 	}
 
-	if err := results[nodeStatusPath].err; err != nil {
-		return m, fmt.Errorf("nodes status failed: %w", err)
-	}
-
-	m.Endpoints = make([]*EndpointMetrics, 0, len(nodes))
+	m.Endpoints = make([]EndpointMetrics, len(nodes))
+	i := 0
 	for _, node := range nodes {
-		ep := &EndpointMetrics{
-			Name:          node.Name,
-			MAC:           node.Mac,
-			Status:        node.Statusid,
-			StatusText:    node.Status,
-			Uptime:        node.Sysinfo.Uptime,
-			Load:          node.Sysinfo.Load,
-			GhnPortNumber: -1,
-			Clients:       make(map[string]int),
-		}
+		ep := &m.Endpoints[i]
+		ep.Name = node.Name
+		ep.MAC = node.Mac
+		ep.Status = node.Statusid
+		ep.StatusText = node.Status
+		ep.Uptime = node.Sysinfo.Uptime
+		ep.Load = node.Sysinfo.Load
+		ep.GhnPortNumber = -1
+		ep.GhnStats = node.GhnStats
+
 		if mac := node.GhnMaster; mac != "" {
 			ep.GhnPortMac = mac
 			ep.GhnPortNumber = eoc.MacAddr.Index(mac)
 		}
+
 		for _, client := range node.Clients {
-			ep.Clients[client.Band]++
+			switch client.Band {
+			case "5 GHz":
+				ep.Clients.Radio5++
+			case "2.4 GHz":
+				ep.Clients.Radio24++
+			default:
+				log.Printf("unknown band: %s", client.Band)
+			}
 		}
+
+		i++
 	}
 
 	return m, nil
