@@ -224,21 +224,11 @@ retry:
 		ep.Load = node.Sysinfo.Load
 		ep.GhnPortNumber = -1
 		ep.GhnStats = node.GhnStats
+		ep.Statistics = node.Statistics
 
 		if mac := node.GhnMaster; mac != "" {
 			ep.GhnPortMac = mac
 			ep.GhnPortNumber = eoc.MacAddr.Index(mac)
-		}
-
-		for _, client := range node.Clients {
-			switch client.Band {
-			case "5 GHz":
-				ep.Clients.Radio5++
-			case "2.4 GHz":
-				ep.Clients.Radio24++
-			default:
-				log.Printf("unknown band: %s", client.Band)
-			}
 		}
 
 		i++

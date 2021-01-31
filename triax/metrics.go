@@ -10,10 +10,7 @@ type EndpointMetrics struct {
 	GhnPortNumber int
 	GhnPortMac    string
 	GhnStats      *GhnStats
-	Clients       struct {
-		Radio24 uint
-		Radio5  uint
-	}
+	Statistics    Statistics
 }
 
 type GhnPort struct {

@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -28,20 +29,19 @@ var (
 	ctrlGhnNumRegistered = ctrlDesc("ghn_endpoints_registered", "number of endponts registered for a G.HN port", "port")
 
 	nodeLabel   = []string{"name"}
-	nodeStatus  = nodeDesc("status", "current AP status")
-	nodeUptime  = nodeDesc("uptime", "uptime of AP in seconds")
-	nodeLoad    = nodeDesc("load", "current system load of AP")
+	nodeStatus  = nodeDesc("status", "current endpoint status")
+	nodeUptime  = nodeDesc("uptime", "uptime of endpoint in seconds")
+	nodeLoad    = nodeDesc("load", "current system load of endpoint")
 	nodeGhnPort = nodeDesc("ghn_port", "G.HN port number", "ghn_mac")
-	nodeClients = nodeDesc("clients", "number of connected WLAN clients", "radio")
+	nodeClients = nodeDesc("clients", "number of connected WLAN clients", "band")
 
-	ghnAbort  = nodeDesc("ghn_abort", "Total count of Abort")
-	ghnError  = nodeDesc("ghn_error", "Total count of Error")
-	ghnFrames = nodeDesc("ghn_frames", "Total count of Frames")
-	ghnLpdus  = nodeDesc("ghn_lpdus", "Total count of Lpdus")
-	ghnRxbps  = nodeDesc("ghn_rxbps", "Total count of Rxbps")
-	ghnTxbps  = nodeDesc("ghn_txbps", "Total count of Txbps")
+	counterLabel   = []string{"interface", "direction"}
+	counterBytes   = nodeDesc("interface_bytes", "total bytes transmitted or received", counterLabel...)
+	counterPackets = nodeDesc("interface_packets", "total packets transmitted or received", counterLabel...)
+	counterErrors  = nodeDesc("interface_errors", "total number of errors", counterLabel...)
 
-	// TODO: apGhnStats - welche Felder und was ist deren Bedeutung?
+	ghnRxbps = nodeDesc("ghn_rxbps", "negotiated RX rate in bps")
+	ghnTxbps = nodeDesc("ghn_txbps", "negotiated TX rate in bps")
 )
 
 func (t *triaxCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -67,6 +67,15 @@ func (t *triaxCollector) Collect(ch chan<- prometheus.Metric) {
 
 	metric := func(desc *prometheus.Desc, typ prometheus.ValueType, v float64, label ...string) {
 		ch <- prometheus.MustNewConstMetric(desc, typ, v, label...)
+	}
+
+	counterMetric := func(counters *triax.Counters, node, ifname string) {
+		metric(counterBytes, C, float64(counters.RxByte), node, ifname, "rx")
+		metric(counterBytes, C, float64(counters.TxByte), node, ifname, "tx")
+		metric(counterPackets, C, float64(counters.RxPacket), node, ifname, "rx")
+		metric(counterPackets, C, float64(counters.TxPacket), node, ifname, "tx")
+		metric(counterErrors, C, float64(counters.RxErr), node, ifname, "rx")
+		metric(counterErrors, C, float64(counters.TxErr), node, ifname, "tx")
 	}
 
 	m, err := t.client.Metrics(t.ctx)
@@ -96,14 +105,22 @@ func (t *triaxCollector) Collect(ch chan<- prometheus.Metric) {
 		for _, node := range nodes {
 			metric(nodeStatus, G, float64(node.Status), node.Name)
 			metric(nodeUptime, C, float64(node.Uptime), node.Name)
-			metric(nodeClients, G, float64(node.Clients.Radio24), node.Name, "2.4 Ghz")
-			metric(nodeClients, G, float64(node.Clients.Radio5), node.Name, "5 Ghz")
 
+			// ethernet statistics
+			for _, stats := range node.Statistics.Ethernet {
+				if stats.Link {
+					counterMetric(&stats.Counters, node.Name, fmt.Sprintf("eth%d", stats.Port))
+				}
+			}
+
+			// wireless statistics
+			for _, stats := range node.Statistics.Wireless {
+				metric(nodeClients, G, float64(stats.Clients), node.Name, strconv.Itoa(stats.Band))
+				counterMetric(&stats.Counters, node.Name, fmt.Sprintf("wifi%d", stats.Band))
+			}
+
+			// ghn statistics
 			if stats := node.GhnStats; stats != nil {
-				// metric(ghnAbort, C, float64(stats.Abort), node.Name)
-				// metric(ghnError, C, float64(stats.Error), node.Name)
-				// metric(ghnFrames, C, float64(stats.Frames), node.Name)
-				// metric(ghnLpdus, C, float64(stats.Lpdus), node.Name)
 				metric(ghnRxbps, G, float64(stats.Rxbps), node.Name)
 				metric(ghnTxbps, G, float64(stats.Txbps), node.Name)
 			}
