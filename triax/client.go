@@ -166,7 +166,7 @@ func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
 retry:
 	retried := false
 	if err := c.apiGet(ctx, sysinfoPath, &sys); err != nil {
-		if errStatus := err.(*ErrUnexpectedStatus); errStatus.Status == http.StatusUnauthorized && !retried {
+		if errStatus, ok := err.(*ErrUnexpectedStatus); ok && errStatus.Status == http.StatusUnauthorized && !retried {
 			err = c.login(ctx)
 			if err == nil {
 				retried = true

@@ -125,7 +125,7 @@ type Counters struct {
 	TxByte   uint64  `json:"tx_byte"`
 	TxDrop   uint    `json:"tx_drop"`
 	TxErr    uint    `json:"tx_err"`
-	TxMcast  uint    `json:"tx_mcast"`
+	TxMcast  float64 `json:"tx_mcast"`
 	TxPacket uint    `json:"tx_packet"`
 	TxUcast  uint    `json:"tx_ucast"`
 }
