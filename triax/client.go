@@ -23,7 +23,7 @@ type Client struct {
 }
 
 var (
-	// Verbose increases verbosity
+	// Verbose increases verbosity.
 	Verbose bool
 
 	HTTPClient = http.Client{

@@ -86,7 +86,7 @@ func (t *triaxCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	metric(ctrlUptime, C, float64(m.Uptime))
-	metric(ctrlLoad, G, float64(m.Load))
+	metric(ctrlLoad, G, m.Load)
 
 	metric(ctrlMemoryTotal, G, float64(m.Memory.Total))
 	metric(ctrlMemoryFree, G, float64(m.Memory.Free))
