@@ -154,26 +154,28 @@ func (c *Client) apiRequest(ctx context.Context, method, path string, request, r
 }
 
 func (c *Client) apiGet(ctx context.Context, path string, res interface{}) error {
-	return c.apiRequest(ctx, http.MethodGet, path, nil, res)
+	retried := false
+
+retry:
+	err := c.apiRequest(ctx, http.MethodGet, path, nil, res)
+	if errStatus, ok := err.(*ErrUnexpectedStatus); ok && errStatus.Status == http.StatusUnauthorized && !retried {
+		err = c.login(ctx)
+		if err == nil {
+			retried = true
+			goto retry
+		}
+	}
+
+	return err
 }
 
 func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
-	eoc := syseocResponse{}       // EoC port names
 	sys := sysinfoResponse{}      // uptime, memory
+	eoc := syseocResponse{}       // EoC port names
 	ghn := ghnStatusResponse{}    // G.HN port status
 	nodes := nodeStatusResponse{} // data for each AP
 
-retry:
-	retried := false
-	if err := c.apiGet(ctx, sysinfoPath, &sys); err != nil {
-		if errStatus, ok := err.(*ErrUnexpectedStatus); ok && errStatus.Status == http.StatusUnauthorized && !retried {
-			err = c.login(ctx)
-			if err == nil {
-				retried = true
-				goto retry
-			}
-		}
-
+	if err := c.apiGet(ctx, sysinfoPath, &eoc); err != nil {
 		return nil, err
 	}
 

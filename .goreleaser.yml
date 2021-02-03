@@ -54,7 +54,7 @@ nfpms:
 
       # Sometimes it is important to be able to set the mtime, mode, owner, or group for a file
       # that differs from what is on the local build system at build time.
-      - src: config/config.example.toml
+      - src: exporter/config.example.toml
         dst: /etc/triax-eoc-exporter/config.toml
         type: config
         file_info:

@@ -5,7 +5,6 @@ import (
 	"log"
 	"runtime/debug"
 
-	"git.digineo.de/digineo/triax-eoc-exporter/config"
 	"git.digineo.de/digineo/triax-eoc-exporter/exporter"
 	"git.digineo.de/digineo/triax-eoc-exporter/triax"
 	"github.com/digineo/goldflags"
@@ -17,8 +16,15 @@ import (
 // This might be overwritten at build time (using -ldflags).
 var DefaultConfigPath = "./config.toml"
 
-func main() {
+// nolint: gochecknoglobals
+var (
+	version = "dev"
+	commit  = ""
+	date    = ""
+	builtBy = ""
+)
 
+func main() {
 	listenAddress := kingpin.Flag(
 		"web.listen-address",
 		"Address on which to expose metrics and web interface.",
@@ -37,13 +43,13 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
-	cfg, err := config.LoadFile(*configFile)
+	cfg, err := exporter.LoadConfig(*configFile)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
 	triax.Verbose = *verbose
-	exporter.Start(*listenAddress, cfg)
+	cfg.Start(*listenAddress)
 }
 
 func printVersion() {

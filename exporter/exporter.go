@@ -1,26 +1,37 @@
 package exporter
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"net/url"
+	"text/template"
 
-	"git.digineo.de/digineo/triax-eoc-exporter/config"
 	"git.digineo.de/digineo/triax-eoc-exporter/triax"
-	"github.com/digineo/goldflags"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func Start(listenAddress string, cfg *config.Config) {
+func (cfg *Config) Start(listenAddress string) {
+	http.Handle("/metrics", cfg.targetMiddleware(cfg.metricsHandler))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, indexHTML, goldflags.VersionString())
+
+		if r.RequestURI != "/" {
+			http.NotFound(w, r)
+			return
+		}
+
+		tmpl.Execute(w, &indexVariables{
+			Controllers: cfg.Controllers,
+		})
 	})
 
-	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		reg := prometheus.NewRegistry()
+	log.Printf("Starting exporter on http://%s/", listenAddress)
+	log.Fatal(http.ListenAndServe(listenAddress, nil))
+}
 
+type targetHandler func(*triax.Client, http.ResponseWriter, *http.Request)
+
+func (cfg *Config) targetMiddleware(next targetHandler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		target := r.URL.Query().Get("target")
 
 		if target == "" {
@@ -28,24 +39,7 @@ func Start(listenAddress string, cfg *config.Config) {
 			return
 		}
 
-		var err error
-		var client *triax.Client
-
-		for _, ctrl := range cfg.Controllers {
-			if target == ctrl.Alias || target == ctrl.Host {
-				client, err = triax.NewClient(&url.URL{
-					Scheme: "https",
-					User:   url.UserPassword("admin", ctrl.Password),
-					Host:   ctrl.Host,
-					Path:   "/",
-				})
-				if err != nil {
-					log.Printf("error constructing client for %q: %v", ctrl.Host, err)
-				}
-				break
-			}
-		}
-
+		client, err := cfg.getClient(target)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
@@ -56,19 +50,25 @@ func Start(listenAddress string, cfg *config.Config) {
 			return
 		}
 
-		reg.MustRegister(&triaxCollector{
-			client: client,
-			ctx:    r.Context(),
-		})
-		h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
-		h.ServeHTTP(w, r)
+		next(client, w, r)
 	})
-
-	log.Printf("Starting exporter on http://%s/", listenAddress)
-	log.Fatal(http.ListenAndServe(listenAddress, nil))
 }
 
-const indexHTML = `<!doctype html>
+func (cfg *Config) metricsHandler(client *triax.Client, w http.ResponseWriter, r *http.Request) {
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(&triaxCollector{
+		client: client,
+		ctx:    r.Context(),
+	})
+	h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
+	h.ServeHTTP(w, r)
+}
+
+type indexVariables struct {
+	Controllers []Controller
+}
+
+var tmpl = template.Must(template.New("index").Option("missingkey=error").Parse(`<!doctype html>
 <html>
 <head>
 	<meta charset="UTF-8">
@@ -76,7 +76,14 @@ const indexHTML = `<!doctype html>
 </head>
 <body>
 	<h1>Triax EoC Exporter</h1>
-	<p><a href="/metrics">Metrics</a></p>
+
+	<h2>Metrics</h2>
+	<ol>
+	{{range .Controllers}}
+		<li><a href="/metrics?target={{.Alias }}">{{.Alias}}</a></li>
+	{{end}}
+	</ol>
+
 </body>
 </html>
-`
+`))
