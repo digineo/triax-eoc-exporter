@@ -1,8 +1,12 @@
 package exporter
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 	"text/template"
 
 	"git.digineo.de/digineo/triax-eoc-exporter/triax"
@@ -12,8 +16,8 @@ import (
 
 func (cfg *Config) Start(listenAddress string) {
 	http.Handle("/metrics", cfg.targetMiddleware(cfg.metricsHandler))
+	http.Handle("/api/", cfg.targetMiddleware(cfg.apiHandler))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
 		if r.RequestURI != "/" {
 			http.NotFound(w, r)
 			return
@@ -64,6 +68,27 @@ func (cfg *Config) metricsHandler(client *triax.Client, w http.ResponseWriter, r
 	h.ServeHTTP(w, r)
 }
 
+// proxy handler for API GET requests.
+func (cfg *Config) apiHandler(client *triax.Client, w http.ResponseWriter, r *http.Request) {
+	parts := strings.SplitN(r.RequestURI, "/", 3)
+
+	if len(parts) != 3 {
+		http.Error(w, "path missing", http.StatusNotFound)
+		return
+	}
+
+	defer r.Body.Close()
+
+	msg := json.RawMessage{}
+	err := client.Get(r.Context(), parts[2], &msg)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	io.Copy(w, bytes.NewReader(msg))
+}
+
 type indexVariables struct {
 	Controllers []Controller
 }
@@ -81,6 +106,13 @@ var tmpl = template.Must(template.New("index").Option("missingkey=error").Parse(
 	<ol>
 	{{range .Controllers}}
 		<li><a href="/metrics?target={{.Alias }}">{{.Alias}}</a></li>
+	{{end}}
+	</ol>
+
+	<h2>Node Status</h2>
+	<ol>
+	{{range .Controllers}}
+		<li><a href="/api/node/status/?target={{.Alias }}">{{.Alias}}</a></li>
 	{{end}}
 	</ol>
 

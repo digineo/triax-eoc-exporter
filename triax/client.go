@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -69,7 +70,6 @@ func (c *Client) login(ctx context.Context) error {
 	req := loginRequest{Username: c.username, Password: c.password}
 	res := loginResponse{}
 	err := c.apiRequest(ctx, http.MethodPost, loginPath, &req, &res)
-
 	if err != nil {
 		return err
 	}
@@ -153,12 +153,14 @@ func (c *Client) apiRequest(ctx context.Context, method, path string, request, r
 	return nil
 }
 
-func (c *Client) apiGet(ctx context.Context, path string, res interface{}) error {
+func (c *Client) Get(ctx context.Context, path string, res interface{}) error {
 	retried := false
 
 retry:
+	errStatus := &ErrUnexpectedStatus{}
 	err := c.apiRequest(ctx, http.MethodGet, path, nil, res)
-	if errStatus, ok := err.(*ErrUnexpectedStatus); ok && errStatus.Status == http.StatusUnauthorized && !retried {
+
+	if errors.As(err, &errStatus) && errStatus.Status == http.StatusUnauthorized && !retried {
 		err = c.login(ctx)
 		if err == nil {
 			retried = true
@@ -175,19 +177,19 @@ func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
 	ghn := ghnStatusResponse{}    // G.HN port status
 	nodes := nodeStatusResponse{} // data for each AP
 
-	if err := c.apiGet(ctx, sysinfoPath, &eoc); err != nil {
+	if err := c.Get(ctx, sysinfoPath, &eoc); err != nil {
 		return nil, err
 	}
 
-	if err := c.apiGet(ctx, syseocPath, &eoc); err != nil {
+	if err := c.Get(ctx, syseocPath, &eoc); err != nil {
 		return nil, err
 	}
 
-	if err := c.apiGet(ctx, ghnStatusPath, &ghn); err != nil {
+	if err := c.Get(ctx, ghnStatusPath, &ghn); err != nil {
 		return nil, err
 	}
 
-	if err := c.apiGet(ctx, nodeStatusPath, &nodes); err != nil {
+	if err := c.Get(ctx, nodeStatusPath, &nodes); err != nil {
 		return nil, err
 	}
 
