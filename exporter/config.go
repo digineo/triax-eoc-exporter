@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"git.digineo.de/digineo/triax-eoc-exporter/triax"
 	"github.com/BurntSushi/toml"
+	"github.com/digineo/triax-eoc-exporter/triax"
 )
 
 type Config struct {

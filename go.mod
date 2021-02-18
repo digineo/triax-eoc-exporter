@@ -1,4 +1,4 @@
-module git.digineo.de/digineo/triax-eoc-exporter
+module github.com/digineo/triax-eoc-exporter
 
 go 1.15
 

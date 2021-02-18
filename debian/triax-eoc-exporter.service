@@ -4,7 +4,7 @@ Documentation=https://github.com/digineo
 
 [Service]
 EnvironmentFile=/etc/default/triax-eoc-exporter
-ExecStart=/usr/bin/triax_eoc_exporter --web.config=/etc/triax-eoc-exporter/config.toml $ARGS
+ExecStart=/usr/bin/triax-eoc-exporter --web.config=/etc/triax-eoc-exporter/config.toml $ARGS
 User=prometheus
 ProtectSystem=strict
 ProtectHome=yes

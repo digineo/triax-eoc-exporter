@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"git.digineo.de/digineo/triax-eoc-exporter/triax"
+	"github.com/digineo/triax-eoc-exporter/triax"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

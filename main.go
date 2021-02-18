@@ -5,9 +5,9 @@ import (
 	"log"
 	"runtime/debug"
 
-	"git.digineo.de/digineo/triax-eoc-exporter/exporter"
-	"git.digineo.de/digineo/triax-eoc-exporter/triax"
 	"github.com/digineo/goldflags"
+	"github.com/digineo/triax-eoc-exporter/exporter"
+	"github.com/digineo/triax-eoc-exporter/triax"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
