@@ -5,7 +5,6 @@ import (
 	"log"
 	"runtime/debug"
 
-	"github.com/digineo/goldflags"
 	"github.com/digineo/triax-eoc-exporter/exporter"
 	"github.com/digineo/triax-eoc-exporter/triax"
 
@@ -60,7 +59,7 @@ func printVersion() {
 
 	const l = "%-10s %-50s %s\n"
 	fmt.Println("Dependencies\n------------")
-	fmt.Printf(l, "main", info.Main.Path, goldflags.VersionString())
+	fmt.Printf(l, "main", info.Main.Path, version)
 	for _, i := range info.Deps {
 		if r := i.Replace; r != nil {
 			fmt.Printf(l, "dep", r.Path, r.Version)
