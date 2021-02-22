@@ -31,6 +31,7 @@ var (
 	nodeLabel   = []string{"name"}
 	nodeStatus  = nodeDesc("status", "current endpoint status")
 	nodeUptime  = nodeDesc("uptime", "uptime of endpoint in seconds")
+	nodeOffline = nodeDesc("offline_since", "offline since unix timestamp")
 	nodeLoad    = nodeDesc("load", "current system load of endpoint")
 	nodeGhnPort = nodeDesc("ghn_port", "G.HN port number", "ghn_mac")
 	nodeClients = nodeDesc("clients", "number of connected WLAN clients", "band")
@@ -104,7 +105,12 @@ func (t *triaxCollector) Collect(ch chan<- prometheus.Metric) {
 	if nodes := m.Endpoints; nodes != nil {
 		for _, node := range nodes {
 			metric(nodeStatus, G, float64(node.Status), node.Name)
-			metric(nodeUptime, C, float64(node.Uptime), node.Name)
+
+			if node.Uptime > 0 {
+				metric(nodeUptime, C, float64(node.Uptime), node.Name)
+			} else {
+				metric(nodeOffline, C, float64(node.OfflineSince.Unix()), node.Name)
+			}
 
 			// ethernet statistics
 			for _, stats := range node.Statistics.Ethernet {

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -229,6 +230,15 @@ func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
 		ep.GhnPortNumber = -1
 		ep.GhnStats = node.GhnStats
 		ep.Statistics = node.Statistics
+
+		if node.RegTimestamp != "" {
+			val, err := strconv.Atoi(node.RegTimestamp)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse regts value '%v': %w", node.RegTimestamp, err)
+			} else {
+				ep.OfflineSince = time.Unix(int64(val), 0)
+			}
+		}
 
 		if mac := node.GhnMaster; mac != "" {
 			ep.GhnPortMac = mac

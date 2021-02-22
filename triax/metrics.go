@@ -1,5 +1,7 @@
 package triax
 
+import "time"
+
 type EndpointMetrics struct {
 	Name          string
 	MAC           string
@@ -11,6 +13,7 @@ type EndpointMetrics struct {
 	GhnPortMac    string
 	GhnStats      *GhnStats
 	Statistics    Statistics
+	OfflineSince  time.Time
 }
 
 type GhnPort struct {

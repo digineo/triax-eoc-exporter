@@ -84,16 +84,17 @@ const nodeStatusPath = "node/status/"
 // response from /api/node/status/. The key is a mangeled form
 // of the AP's MAC address, and should be ignored.
 type nodeStatusResponse map[string]struct {
-	Clients    []Clients  `json:"clients"`
-	GhnMaster  string     `json:"ghn_master"`
-	GhnStats   *GhnStats  `json:"ghn_stats"`
-	Mac        string     `json:"mac"`
-	Name       string     `json:"name"`
-	Serial     string     `json:"serial"`
-	Statistics Statistics `json:"statistics"`
-	Status     string     `json:"status"`
-	Statusid   int        `json:"statusid"`
-	Sysinfo    struct {
+	Clients      []Clients  `json:"clients"`
+	GhnMaster    string     `json:"ghn_master"`
+	GhnStats     *GhnStats  `json:"ghn_stats"`
+	Mac          string     `json:"mac"`
+	Name         string     `json:"name"`
+	RegTimestamp string     `json:"regts"`
+	Serial       string     `json:"serial"`
+	Statistics   Statistics `json:"statistics"`
+	Status       string     `json:"status"`
+	Statusid     int        `json:"statusid"`
+	Sysinfo      struct {
 		Load   float64 `json:"load"`
 		Uptime uint    `json:"uptime"`
 	} `json:"sysinfo"`
