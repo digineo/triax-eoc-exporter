@@ -54,14 +54,13 @@ nfpms:
 
       # Sometimes it is important to be able to set the mtime, mode, owner, or group for a file
       # that differs from what is on the local build system at build time.
-      - src: exporter/config.example.toml
+      - src: config.example.toml
         dst: /etc/triax-eoc-exporter/config.toml
         type: config
         file_info:
           mode: 0600
-          mtime: 2008-01-02T15:04:05Z
-          owner: notRoot
-          group: notRoot
+          owner: triax-eoc-exporter
+          group: triax-eoc-exporter
 
     # Scripts to execute during the installation of the package.
     # Keys are the possible targets during the installation process

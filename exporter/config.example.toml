@@ -1,5 +1,0 @@
-[[eoc-controller]]
-
-alias    = "eoc"
-host     = "192.168.1.2"
-password = "admin"

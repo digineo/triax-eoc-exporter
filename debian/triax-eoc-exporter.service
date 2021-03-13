@@ -1,11 +1,11 @@
 [Unit]
-Description=Triax EoC Exporter
-Documentation=https://github.com/digineo
+Description=Triax EoC Exporter for Prometheus
+Documentation=https://github.com/digineo/triax-eoc-exporter
 
 [Service]
 EnvironmentFile=/etc/default/triax-eoc-exporter
 ExecStart=/usr/bin/triax-eoc-exporter --web.config=/etc/triax-eoc-exporter/config.toml $ARGS
-User=prometheus
+User=triax-eoc-exporter
 ProtectSystem=strict
 ProtectHome=yes
 ReadOnlyPaths=/etc/triax-eoc-exporter
