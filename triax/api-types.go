@@ -106,12 +106,12 @@ type Clients struct {
 }
 
 type GhnStats struct {
-	Abort  string `json:"abort"`
-	Error  string `json:"error"`
-	Frames string `json:"frames"`
-	Lpdus  string `json:"lpdus"`
-	Rxbps  uint   `json:"rxbps"`
-	Txbps  uint   `json:"txbps"`
+	Abort  quotedInt `json:"abort"`
+	Error  quotedInt `json:"error"`
+	Frames quotedInt `json:"frames"`
+	Lpdus  quotedInt `json:"lpdus"`
+	Rxbps  quotedInt `json:"rxbps"`
+	Txbps  quotedInt `json:"txbps"`
 }
 
 type Counters struct {
