@@ -4,6 +4,8 @@ Triax EoC Exporter
 This is a [Prometheus](https://prometheus.io/) exporter for
 [Triax EoC controllers](https://www.triax.com/products/ethernet-over-coax).
 
+It also includes proxy methods for reading the nodes list and naming nodes.
+
 ## Installation
 
 Use one of the ready-to-use [releases](https://github.com/digineo/triax-eoc-exporter/releases), or compile and install it using the Go toolchain:
@@ -32,8 +34,10 @@ scrape_configs:
   - job_name: triax-eoc
     relabel_configs:
       - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
+        regex:         (.+)
+        target_label:  __metrics_path__
+        replacement:   /controllers/$1/metrics
+      - source_labels: [__address__]
         target_label: instance
       - target_label: __address__
         replacement: 127.0.0.1:9809 # The exporter's real hostname:port

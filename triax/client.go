@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -29,7 +28,7 @@ var (
 	Verbose bool
 
 	HTTPClient = http.Client{
-		Timeout: time.Second * 10,
+		Timeout: time.Second * 30,
 	}
 )
 
@@ -62,6 +61,10 @@ func NewClient(endpoint *url.URL) (*Client, error) {
 	return client, nil
 }
 
+func (c *Client) Get(ctx context.Context, path string, res interface{}) error {
+	return c.apiRequest(ctx, http.MethodGet, path, nil, res)
+}
+
 func (c *Client) login(ctx context.Context) error {
 	HTTPClient.Jar.SetCookies(c.endpoint, []*http.Cookie{{
 		Name:   sessionCookieName,
@@ -70,7 +73,7 @@ func (c *Client) login(ctx context.Context) error {
 
 	req := loginRequest{Username: c.username, Password: c.password}
 	res := loginResponse{}
-	err := c.apiRequest(ctx, http.MethodPost, loginPath, &req, &res)
+	err := c.apiRequestRaw(ctx, http.MethodPost, loginPath, &req, &res)
 	if err != nil {
 		return err
 	}
@@ -89,13 +92,32 @@ func (c *Client) login(ctx context.Context) error {
 	return nil
 }
 
-// apiRequest sends an API request to the controller. The path is constructed
+// calls apiRequestRaw and does a login on unauthorized status
+func (c *Client) apiRequest(ctx context.Context, method, path string, request, response interface{}) error {
+	retried := false
+
+retry:
+	errStatus := &ErrUnexpectedStatus{}
+	err := c.apiRequestRaw(ctx, method, path, request, response)
+
+	if errors.As(err, &errStatus) && errStatus.Status == http.StatusUnauthorized && !retried {
+		err = c.login(ctx)
+		if err == nil {
+			retried = true
+			goto retry
+		}
+	}
+
+	return err
+}
+
+// apiRequestRaw sends an API request to the controller. The path is constructed
 // from c.base + "/api/" + path. The request parameter, if not nil, will be
 // JSON encoded, and the JSON response is decoded into the response parameter.
 //
 //	req, res := requestType{...}, responseType{...}
-//	err := c.apiRequest(ctx, "POST", "node/status", &req, &res)
-func (c *Client) apiRequest(ctx context.Context, method, path string, request, response interface{}) error {
+//	err := c.apiRequestRaw(ctx, "POST", "node/status", &req, &res)
+func (c *Client) apiRequestRaw(ctx context.Context, method, path string, request, response interface{}) error {
 	url := fmt.Sprintf("%s://%s/api/%s", c.endpoint.Scheme, c.endpoint.Host, strings.TrimPrefix(path, "/"))
 
 	if Verbose {
@@ -143,110 +165,15 @@ func (c *Client) apiRequest(ctx context.Context, method, path string, request, r
 		return err
 	}
 
-	err = json.Unmarshal(jsonData, &response)
-	if Verbose || err != nil {
-		log.Println(string(jsonData))
-	}
-	if err != nil {
-		return fmt.Errorf("decoding response failed: %w", err)
+	if response != nil {
+		err = json.Unmarshal(jsonData, &response)
+		if Verbose || err != nil {
+			log.Println(string(jsonData))
+		}
+		if err != nil {
+			return fmt.Errorf("decoding response failed: %w", err)
+		}
 	}
 
 	return nil
-}
-
-func (c *Client) Get(ctx context.Context, path string, res interface{}) error {
-	retried := false
-
-retry:
-	errStatus := &ErrUnexpectedStatus{}
-	err := c.apiRequest(ctx, http.MethodGet, path, nil, res)
-
-	if errors.As(err, &errStatus) && errStatus.Status == http.StatusUnauthorized && !retried {
-		err = c.login(ctx)
-		if err == nil {
-			retried = true
-			goto retry
-		}
-	}
-
-	return err
-}
-
-func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
-	sys := sysinfoResponse{}      // uptime, memory
-	eoc := syseocResponse{}       // EoC port names
-	ghn := ghnStatusResponse{}    // G.HN port status
-	nodes := nodeStatusResponse{} // data for each AP
-
-	if err := c.Get(ctx, sysinfoPath, &eoc); err != nil {
-		return nil, err
-	}
-
-	if err := c.Get(ctx, syseocPath, &eoc); err != nil {
-		return nil, err
-	}
-
-	if err := c.Get(ctx, ghnStatusPath, &ghn); err != nil {
-		return nil, err
-	}
-
-	if err := c.Get(ctx, nodeStatusPath, &nodes); err != nil {
-		return nil, err
-	}
-
-	m := &Metrics{}
-	m.Uptime = sys.Uptime
-	m.Load = sys.Load
-	m.Memory.Total = sys.Memory.Total
-	m.Memory.Free = sys.Memory.Free
-	m.Memory.Shared = sys.Memory.Shared
-	m.Memory.Buffered = sys.Memory.Buffered
-
-	m.GhnPorts = make(map[string]*GhnPort)
-	for _, port := range ghn {
-		m.GhnPorts[strings.ToLower(port.Mac)] = &GhnPort{
-			Number:              -1, // determined in next step
-			EndpointsOnline:     port.Connected,
-			EndpointsRegistered: port.Registered,
-		}
-	}
-
-	for mac := range m.GhnPorts {
-		if i := eoc.MacAddr.Index(mac); i >= 0 {
-			m.GhnPorts[mac].Number = i + 1 // yep.
-		}
-	}
-
-	m.Endpoints = make([]EndpointMetrics, len(nodes))
-	i := 0
-	for _, node := range nodes {
-		ep := &m.Endpoints[i]
-		ep.Name = node.Name
-		ep.MAC = node.Mac
-		ep.Status = node.Statusid
-		ep.StatusText = node.Status
-		ep.Uptime = node.Sysinfo.Uptime
-		ep.Load = node.Sysinfo.Load
-		ep.GhnPortNumber = -1
-		ep.GhnStats = node.GhnStats
-		ep.Statistics = node.Statistics
-
-		if node.RegTimestamp != "" {
-			val, err := strconv.Atoi(node.RegTimestamp)
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse regts value '%v': %w", node.RegTimestamp, err)
-			} else {
-				ep.OfflineSince = time.Unix(int64(val), 0)
-			}
-		}
-
-		if mac := node.GhnMaster; mac != "" {
-			ep.GhnPortMac = mac
-			ep.GhnPortNumber = eoc.MacAddr.Index(mac)
-		}
-
-		i++
-	}
-
-	return m, nil
 }

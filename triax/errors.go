@@ -33,5 +33,5 @@ type ErrUnexpectedStatus struct {
 }
 
 func (err *ErrUnexpectedStatus) Error() string {
-	return fmt.Sprintf("unexpected status %d for %v %v: %v", err.Status, err.Method, err.URL, err.Body)
+	return fmt.Sprintf("unexpected status %d for %v %v: %s", err.Status, err.Method, err.URL, err.Body)
 }
