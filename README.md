@@ -4,7 +4,11 @@ Triax EoC Exporter
 This is a [Prometheus](https://prometheus.io/) exporter for
 [Triax EoC controllers](https://www.triax.com/products/ethernet-over-coax).
 
-It also includes proxy methods for reading the nodes list and naming nodes.
+## Features
+
+* Exporting metrics for prometheus
+* HTTP-Proxy to read API responses like the endpoint list
+* Renaming of endpoints
 
 ## Installation
 
