@@ -24,6 +24,8 @@ var (
 )
 
 func main() {
+	log.SetFlags(log.Lshortfile)
+
 	listenAddress := kingpin.Flag(
 		"web.listen-address",
 		"Address on which to expose metrics and web interface.",
