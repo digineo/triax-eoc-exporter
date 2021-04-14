@@ -50,3 +50,12 @@ scrape_configs:
         - my-controller
         - another-controller
 ```
+
+## Endpoint Status
+
+* 1 OK
+* 2 configuring
+* 4 updating
+* 8 offline (responding)
+* 9 offline (detected)
+* 10 offline
