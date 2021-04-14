@@ -9,16 +9,16 @@ import (
 )
 
 func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
-	sys := sysinfoResponse{}      // uptime, memory
-	eoc := syseocResponse{}       // EoC port names
+	sysinfo := sysinfoResponse{}  // uptime, memory
+	syseoc := syseocResponse{}    // EoC port names
 	ghn := ghnStatusResponse{}    // G.HN port status
 	nodes := nodeStatusResponse{} // data for each AP
 
-	if err := c.Get(ctx, sysinfoPath, &eoc); err != nil {
+	if err := c.Get(ctx, sysinfoPath, &sysinfo); err != nil {
 		return nil, err
 	}
 
-	if err := c.Get(ctx, syseocPath, &eoc); err != nil {
+	if err := c.Get(ctx, syseocPath, &syseoc); err != nil {
 		return nil, err
 	}
 
@@ -31,12 +31,12 @@ func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
 	}
 
 	m := &Metrics{}
-	m.Uptime = sys.Uptime
-	m.Load = sys.Load
-	m.Memory.Total = sys.Memory.Total
-	m.Memory.Free = sys.Memory.Free
-	m.Memory.Shared = sys.Memory.Shared
-	m.Memory.Buffered = sys.Memory.Buffered
+	m.Uptime = sysinfo.Uptime
+	m.Load = sysinfo.Load
+	m.Memory.Total = sysinfo.Memory.Total
+	m.Memory.Free = sysinfo.Memory.Free
+	m.Memory.Shared = sysinfo.Memory.Shared
+	m.Memory.Buffered = sysinfo.Memory.Buffered
 
 	m.GhnPorts = make(map[string]*GhnPort)
 	for _, port := range ghn {
@@ -48,7 +48,7 @@ func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
 	}
 
 	for mac := range m.GhnPorts {
-		if i := eoc.MacAddr.Index(mac); i >= 0 {
+		if i := syseoc.MacAddr.Index(mac); i >= 0 {
 			m.GhnPorts[mac].Number = i + 1 // yep.
 		}
 	}
@@ -78,7 +78,7 @@ func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
 
 		if mac := node.GhnMaster; mac != "" {
 			ep.GhnPortMac = mac
-			ep.GhnPortNumber = eoc.MacAddr.Index(mac)
+			ep.GhnPortNumber = syseoc.MacAddr.Index(mac)
 		}
 
 		i++
