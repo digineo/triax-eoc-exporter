@@ -20,6 +20,30 @@ type loginResponse struct {
 	Message string `json:"message"`
 }
 
+const boardPath = "system/board/"
+
+// Board is the response from /api/board/
+type Board struct {
+	EthMac   string `json:"eth_mac"`
+	Hostname string `json:"hostname"`
+	Kernel   string `json:"kernel"`
+	Mac1     string `json:"mac1"`
+	Mac2     string `json:"mac2"`
+	Model    string `json:"model"`
+	Release  struct {
+		Codename     string `json:"codename"`
+		Description  string `json:"description"`
+		Distribution string `json:"distribution"`
+		Ghn1         string `json:"ghn1"`
+		Ghn2         string `json:"ghn2"`
+		Revision     string `json:"revision"`
+		Target       string `json:"target"`
+		Version      string `json:"version"`
+	} `json:"release"`
+	Serial string `json:"serial"`
+	System string `json:"system"`
+}
+
 const ghnStatusPath = "ghn/status/"
 
 // response from /api/ghn/status.

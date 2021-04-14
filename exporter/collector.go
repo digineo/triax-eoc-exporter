@@ -20,6 +20,7 @@ var _ prometheus.Collector = (*triaxCollector)(nil)
 var (
 	ctrlUp               = ctrlDesc("up", "indicator whether controller is reachable")
 	ctrlUptime           = ctrlDesc("uptime", "uptime of controller in seconds")
+	ctrlInfo             = ctrlDesc("info", "controller infos about the installed software", "serial", "eth_mac", "version")
 	ctrlLoad             = ctrlDesc("load", "current system load of controller")
 	ctrlMemoryTotal      = ctrlDesc("mem_total", "total system memory of controller in bytes")
 	ctrlMemoryFree       = ctrlDesc("mem_free", "free system memory of controller in bytes")
@@ -48,6 +49,7 @@ var (
 func (t *triaxCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- ctrlUp
 	ch <- ctrlUptime
+	ch <- ctrlInfo
 	ch <- ctrlLoad
 	ch <- ctrlMemoryTotal
 	ch <- ctrlMemoryFree
@@ -64,6 +66,17 @@ func (t *triaxCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (t *triaxCollector) Collect(ch chan<- prometheus.Metric) {
+	err := t.collect(ch)
+
+	// Write up
+	ch <- prometheus.MustNewConstMetric(ctrlUp, prometheus.GaugeValue, boolToFloat(err == nil))
+
+	if err != nil {
+		log.Println("fetching failed:", err)
+	}
+}
+
+func (t *triaxCollector) collect(ch chan<- prometheus.Metric) error {
 	const C, G = prometheus.CounterValue, prometheus.GaugeValue
 
 	metric := func(desc *prometheus.Desc, typ prometheus.ValueType, v float64, label ...string) {
@@ -79,11 +92,15 @@ func (t *triaxCollector) Collect(ch chan<- prometheus.Metric) {
 		metric(counterErrors, C, float64(counters.TxErr), node, ifname, "tx")
 	}
 
-	m, err := t.client.Metrics(t.ctx)
-	metric(ctrlUp, G, boolToFloat(err == nil))
+	board, err := t.client.Board(t.ctx)
 	if err != nil {
-		log.Println("fetching failed:", err)
-		return
+		return err
+	}
+	metric(ctrlInfo, C, 1, board.Serial, board.EthMac, board.Release.Revision)
+
+	m, err := t.client.Metrics(t.ctx)
+	if err != nil {
+		return err
 	}
 
 	metric(ctrlUptime, C, float64(m.Uptime))
@@ -132,6 +149,8 @@ func (t *triaxCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 		}
 	}
+
+	return nil
 }
 
 func boolToFloat(val bool) float64 {
