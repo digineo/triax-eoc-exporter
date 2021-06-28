@@ -66,6 +66,7 @@ func (c *Client) Get(ctx context.Context, path string, res interface{}) error {
 }
 
 func (c *Client) login(ctx context.Context) error {
+	// Remove cookie
 	HTTPClient.Jar.SetCookies(c.endpoint, []*http.Cookie{{
 		Name:   sessionCookieName,
 		MaxAge: -1,
@@ -78,10 +79,12 @@ func (c *Client) login(ctx context.Context) error {
 		return err
 	}
 
+	// Check the cookie
 	if !strings.HasPrefix(res.Cookie, sessionCookieName+"=") {
 		return &genericError{fmt.Sprintf("unexpected cookie: %s", res.Cookie)}
 	}
 
+	// Set cookie from response
 	HTTPClient.Jar.SetCookies(c.endpoint, []*http.Cookie{{
 		Name:   sessionCookieName,
 		Value:  strings.TrimPrefix(res.Cookie, sessionCookieName+"="),
