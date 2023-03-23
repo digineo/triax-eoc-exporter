@@ -8,7 +8,7 @@ import (
 	"github.com/digineo/triax-eoc-exporter/exporter"
 	"github.com/digineo/triax-eoc-exporter/triax"
 
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
+	kingpin "github.com/alecthomas/kingpin/v2"
 )
 
 // DefaultConfigPath points to the default config file location.
