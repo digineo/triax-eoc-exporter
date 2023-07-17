@@ -2,3 +2,4 @@
 coverage.txt
 config.toml
 /dist
+.DS_Store
