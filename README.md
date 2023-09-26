@@ -1,6 +1,9 @@
 Triax EoC Exporter
 ==================
 
+[![Build](https://github.com/digineo/triax-eoc-exporter/actions/workflows/go.yml/badge.svg)](https://github.com/digineo/triax-eoc-exporter/actions/workflows/go.yml)
+[![Codecov](http://codecov.io/github/digineo/triax-eoc-exporter/coverage.svg?branch=master)](http://codecov.io/github/digineo/triax-eoc-exporter?branch=master)
+
 This is a [Prometheus](https://prometheus.io/) exporter for
 [Triax EoC controllers](https://www.triax.com/products/ethernet-over-coax).
 
