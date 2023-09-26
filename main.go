@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
+	"os"
 	"runtime/debug"
 
 	"github.com/digineo/triax-eoc-exporter/exporter"
-	"github.com/digineo/triax-eoc-exporter/triax"
 
 	kingpin "github.com/alecthomas/kingpin/v2"
 )
@@ -36,10 +37,10 @@ func main() {
 		"Path to config.toml that contains all the targets.",
 	).Default(DefaultConfigPath).String()
 
-	verbose := kingpin.Flag(
-		"verbose",
-		"Increase verbosity",
-	).Bool()
+	logLevel := kingpin.Flag(
+		"log.level",
+		"Set log level (debug/info/warn/error)",
+	).Default("info").String()
 
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
@@ -49,8 +50,23 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	triax.Verbose = *verbose
+	setLogger(*logLevel)
 	cfg.Start(*listenAddress, version)
+}
+
+func setLogger(logLevel string) {
+
+	levelVar := slog.LevelVar{}
+
+	if err := levelVar.UnmarshalText([]byte(logLevel)); err != nil {
+		log.Panicf("Invalid log level %s: %v", logLevel, err)
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: levelVar.Level(),
+	}))
+
+	slog.SetDefault(logger)
 }
 
 func printVersion() {

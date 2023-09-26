@@ -3,7 +3,7 @@ package exporter
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 
 	"github.com/digineo/triax-eoc-exporter/triax"
@@ -72,7 +72,7 @@ func (t *triaxCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(ctrlUp, prometheus.GaugeValue, boolToFloat(err == nil))
 
 	if err != nil {
-		log.Println("fetching failed:", err)
+		slog.Error("fetching failed", "error", err)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"text/template"
@@ -30,7 +31,7 @@ func (cfg *Config) Start(listenAddress, version string) {
 	router.GET("/controllers/:target/api/*path", cfg.targetMiddleware(cfg.apiHandler))
 	router.PUT("/controllers/:target/nodes/:mac", cfg.targetMiddleware(cfg.updateNodeHandler))
 
-	log.Printf("Starting exporter on http://%s/", listenAddress)
+	slog.Info("Starting exporter", "address", fmt.Sprintf("http://%s/", listenAddress))
 	log.Fatal(http.ListenAndServe(listenAddress, router))
 }
 
