@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"text/template"
@@ -30,8 +30,8 @@ func (cfg *Config) Start(listenAddress, version string) {
 	router.GET("/controllers/:target/api/*path", cfg.targetMiddleware(cfg.apiHandler))
 	router.PUT("/controllers/:target/nodes/:mac", cfg.targetMiddleware(cfg.updateNodeHandler))
 
-	log.Printf("Starting exporter on http://%s/", listenAddress)
-	log.Fatal(http.ListenAndServe(listenAddress, router))
+	slog.Info("Starting exporter", "listenAddress", listenAddress)
+	slog.Info("Server stopped", "reason", http.ListenAndServe(listenAddress, router))
 }
 
 type targetHandler func(*triax.Client, http.ResponseWriter, *http.Request, httprouter.Params)

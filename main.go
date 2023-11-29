@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
+	"os"
 	"runtime/debug"
 
-	"github.com/digineo/triax-eoc-exporter/exporter"
-	"github.com/digineo/triax-eoc-exporter/triax"
-
 	kingpin "github.com/alecthomas/kingpin/v2"
+	"github.com/digineo/triax-eoc-exporter/exporter"
 )
 
 // DefaultConfigPath points to the default config file location.
@@ -44,13 +44,36 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
+	initLogger(*verbose)
+
 	cfg, err := exporter.LoadConfig(*configFile)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	triax.Verbose = *verbose
 	cfg.Start(*listenAddress, version)
+}
+
+func initLogger(verbose bool) {
+	opts := slog.HandlerOptions{
+		Level: slog.LevelInfo,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			// Remove time from the output
+			if a.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+
+			return a
+		},
+	}
+
+	if verbose {
+		opts.Level = slog.LevelDebug
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &opts))
+	slog.SetDefault(logger)
+
 }
 
 func printVersion() {

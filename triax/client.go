@@ -8,8 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -23,14 +22,9 @@ type Client struct {
 	password string
 }
 
-var (
-	// Verbose increases verbosity.
-	Verbose bool
-
-	HTTPClient = http.Client{
-		Timeout: time.Second * 30,
-	}
-)
+var HTTPClient = http.Client{
+	Timeout: time.Second * 30,
+}
 
 func init() {
 	HTTPClient.Jar, _ = cookiejar.New(nil) // error is always nil
@@ -123,9 +117,7 @@ retry:
 func (c *Client) apiRequestRaw(ctx context.Context, method, path string, request, response interface{}) error {
 	url := fmt.Sprintf("%s://%s/api/%s", c.endpoint.Scheme, c.endpoint.Host, strings.TrimPrefix(path, "/"))
 
-	if Verbose {
-		log.Printf("%s %s", method, url)
-	}
+	slog.Info("HTTP Request", "method", method, "url", url)
 
 	var body io.Reader
 	if request != nil {
@@ -153,7 +145,7 @@ func (c *Client) apiRequestRaw(ctx context.Context, method, path string, request
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		data, _ := ioutil.ReadAll(res.Body)
+		data, _ := io.ReadAll(res.Body)
 
 		return &ErrUnexpectedStatus{
 			Method: method,
@@ -163,19 +155,18 @@ func (c *Client) apiRequestRaw(ctx context.Context, method, path string, request
 		}
 	}
 
-	jsonData, err := ioutil.ReadAll(res.Body)
+	jsonData, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
 
 	if response != nil {
 		err = json.Unmarshal(jsonData, &response)
-		if Verbose || err != nil {
-			log.Println(string(jsonData))
-		}
 		if err != nil {
 			return fmt.Errorf("decoding response failed: %w", err)
 		}
+
+		slog.Debug("response received", "json", string(jsonData))
 	}
 
 	return nil
