@@ -1,4 +1,4 @@
-package triax
+package v2
 
 import "time"
 
@@ -7,8 +7,8 @@ type EndpointMetrics struct {
 	MAC           string
 	Status        int
 	StatusText    string
-	Uptime        uint
-	Load          float64
+	Uptime        *uint
+	Load          *float64
 	GhnPortNumber int
 	GhnPortMac    string
 	GhnStats      *GhnStats
