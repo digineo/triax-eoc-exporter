@@ -1,3 +1,14 @@
+builds:
+  - binary: triax-eoc-exporter
+    main: ./cmd
+    flags:
+      - -trimpath
+    env:
+      - CGO_ENABLED=0
+    goarch:
+      - amd64
+      - arm
+      - arm64
 nfpms:
   # note that this is an array of nfpm configs
   -
