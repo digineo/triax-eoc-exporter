@@ -1,4 +1,4 @@
-package triax
+package types
 
 import (
 	"errors"
@@ -19,17 +19,18 @@ func (err *ErrInvalidEndpoint) Unwrap() error {
 
 var ErrMissingCredentials = errors.New("missing username/password")
 
-type genericError struct{ msg string }
+type GenericError struct{ Msg string }
 
-func (err *genericError) Error() string {
-	return err.msg
+func (err *GenericError) Error() string {
+	return err.Msg
 }
 
 type ErrUnexpectedStatus struct {
-	Method string
-	URL    string
-	Status int
-	Body   []byte
+	Method   string
+	Location string
+	URL      string
+	Status   int
+	Body     []byte
 }
 
 func (err *ErrUnexpectedStatus) Error() string {

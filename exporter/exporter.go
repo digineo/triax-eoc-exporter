@@ -3,17 +3,18 @@ package exporter
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"text/template"
 
-	"github.com/digineo/triax-eoc-exporter/triax"
+	"github.com/digineo/triax-eoc-exporter/client"
 	"github.com/julienschmidt/httprouter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	_ "github.com/digineo/triax-eoc-exporter/backend/v2"
+	_ "github.com/digineo/triax-eoc-exporter/backend/v3"
 )
 
 func (cfg *Config) Start(listenAddress, version string) {
@@ -28,13 +29,13 @@ func (cfg *Config) Start(listenAddress, version string) {
 	router.GET("/controllers", cfg.listControllersHandler)
 	router.GET("/controllers/:target/metrics", cfg.targetMiddleware(cfg.metricsHandler))
 	router.GET("/controllers/:target/api/*path", cfg.targetMiddleware(cfg.apiHandler))
-	router.PUT("/controllers/:target/nodes/:mac", cfg.targetMiddleware(cfg.updateNodeHandler))
+	//router.PUT("/controllers/:target/nodes/:mac", cfg.targetMiddleware(cfg.updateNodeHandler))
 
 	slog.Info("Starting exporter", "listenAddress", listenAddress)
 	slog.Info("Server stopped", "reason", http.ListenAndServe(listenAddress, router))
 }
 
-type targetHandler func(*triax.Client, http.ResponseWriter, *http.Request, httprouter.Params)
+type targetHandler func(*client.Client, http.ResponseWriter, *http.Request, httprouter.Params)
 
 func (cfg *Config) targetMiddleware(next targetHandler) httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -66,7 +67,7 @@ func (cfg *Config) listControllersHandler(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(&result)
 }
 
-func (cfg *Config) metricsHandler(client *triax.Client, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (cfg *Config) metricsHandler(client *client.Client, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(&triaxCollector{
 		client: client,
@@ -76,8 +77,9 @@ func (cfg *Config) metricsHandler(client *triax.Client, w http.ResponseWriter, r
 	h.ServeHTTP(w, r)
 }
 
+/*
 // handler for updating nodes
-func (cfg *Config) updateNodeHandler(client *triax.Client, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (cfg *Config) updateNodeHandler(client *client.Client, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	defer r.Body.Close()
 
 	// parse MAC address parameter
@@ -104,9 +106,10 @@ func (cfg *Config) updateNodeHandler(client *triax.Client, w http.ResponseWriter
 
 	w.WriteHeader(http.StatusNoContent)
 }
+*/
 
 // proxy handler for API GET requests.
-func (cfg *Config) apiHandler(client *triax.Client, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (cfg *Config) apiHandler(client *client.Client, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	defer r.Body.Close()
 
 	msg := json.RawMessage{}

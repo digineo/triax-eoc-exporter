@@ -1,4 +1,4 @@
-package triax
+package v2
 
 import (
 	"context"
@@ -14,7 +14,7 @@ type UpdateRequest struct {
 const hexDigit = "0123456789abcdef"
 
 // UpdateNode updates the name of the given node
-func (c *Client) UpdateNode(ctx context.Context, mac net.HardwareAddr, req UpdateRequest) error {
+func (c *backend) UpdateNode(ctx context.Context, mac net.HardwareAddr, req UpdateRequest) error {
 	if len(mac) == 0 {
 		return errors.New("invalid MAC address")
 	}
@@ -28,10 +28,10 @@ func (c *Client) UpdateNode(ctx context.Context, mac net.HardwareAddr, req Updat
 		buf = append(buf, hexDigit[b&0xF])
 	}
 
-	err := c.apiRequest(ctx, http.MethodPut, "config/nodes/node_"+string(buf)+"/", req, nil)
+	err := c.ApiRequest(ctx, http.MethodPut, "config/nodes/node_"+string(buf)+"/", req, nil)
 	if err != nil {
 		return err
 	}
 
-	return c.apiRequest(ctx, http.MethodPost, "config/nodes/commit/", nil, nil)
+	return c.ApiRequest(ctx, http.MethodPost, "config/nodes/commit/", nil, nil)
 }

@@ -1,4 +1,4 @@
-package triax
+package v2
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
+func (c *backend) Metrics(ctx context.Context) (*Metrics, error) {
 	sysinfo := sysinfoResponse{}  // uptime, memory
 	syseoc := syseocResponse{}    // EoC port names
 	ghn := ghnStatusResponse{}    // G.HN port status
@@ -61,11 +61,14 @@ func (c *Client) Metrics(ctx context.Context) (*Metrics, error) {
 		ep.MAC = node.Mac
 		ep.Status = node.Statusid
 		ep.StatusText = node.Status
-		ep.Uptime = node.Sysinfo.Uptime
-		ep.Load = node.Sysinfo.Load
 		ep.GhnPortNumber = -1
 		ep.GhnStats = node.GhnStats
 		ep.Statistics = node.Statistics
+
+		if sysinfo := node.Sysinfo; sysinfo != nil {
+			ep.Uptime = &sysinfo.Uptime
+			ep.Load = &sysinfo.Load
+		}
 
 		if node.RegTimestamp != "" {
 			val, err := strconv.Atoi(node.RegTimestamp)

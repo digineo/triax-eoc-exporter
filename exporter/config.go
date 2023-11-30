@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/BurntSushi/toml"
-	"github.com/digineo/triax-eoc-exporter/triax"
+	"github.com/digineo/triax-eoc-exporter/client"
 )
 
 const defaultPort = 443
@@ -22,6 +22,7 @@ type Controller struct {
 	Host     string
 	Port     uint16
 	Password string
+	client   *client.Client
 }
 
 // LoadConfig loads the configuration from a file
@@ -36,10 +37,11 @@ func LoadConfig(file string) (*Config, error) {
 }
 
 // getClient builds a client
-func (cfg *Config) getClient(target string) (*triax.Client, error) {
-	for _, ctrl := range cfg.Controllers {
+func (cfg *Config) getClient(target string) (*client.Client, error) {
+	for i := range cfg.Controllers {
+		ctrl := &cfg.Controllers[i]
 		if target == ctrl.Alias || target == ctrl.Host {
-			return triax.NewClient(ctrl.url())
+			return ctrl.getClient()
 		}
 	}
 
@@ -60,4 +62,17 @@ func (ctrl *Controller) url() *url.URL {
 		Host:   host,
 		Path:   "/",
 	}
+}
+
+func (ctrl *Controller) getClient() (*client.Client, error) {
+	if ctrl.client == nil {
+
+		c, err := client.NewClient(ctrl.url())
+		if err != nil {
+			return nil, err
+		}
+		ctrl.client = c
+	}
+
+	return ctrl.client, nil
 }

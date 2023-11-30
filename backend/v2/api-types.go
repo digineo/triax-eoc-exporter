@@ -1,4 +1,4 @@
-package triax
+package v2
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const loginPath = "login/"
+const loginPath = "api/login/"
 
 // request for /api/login.
 type loginRequest struct {
@@ -20,7 +20,7 @@ type loginResponse struct {
 	Message string `json:"message"`
 }
 
-const boardPath = "system/board/"
+const boardPath = "api/system/board/"
 
 // Board is the response from /api/board/
 type Board struct {
@@ -44,7 +44,7 @@ type Board struct {
 	System string `json:"system"`
 }
 
-const ghnStatusPath = "ghn/status/"
+const ghnStatusPath = "api/ghn/status/"
 
 // response from /api/ghn/status.
 type ghnStatusResponse []struct {
@@ -54,7 +54,7 @@ type ghnStatusResponse []struct {
 	Registered uint `json:"registered"`
 }
 
-const sysinfoPath = "system/info/"
+const sysinfoPath = "api/system/info/"
 
 // response from /api/system/info.
 type sysinfoResponse struct {
@@ -68,7 +68,7 @@ type sysinfoResponse struct {
 	Load   float64 `json:"load"`
 }
 
-const syseocPath = "config/system/eoc/"
+const syseocPath = "api/config/system/eoc/"
 
 // response from /config/system/eoc.
 type syseocResponse struct {
@@ -103,7 +103,7 @@ func (mal MacAddrList) Index(s string) int {
 	return -1
 }
 
-const nodeStatusPath = "node/status/"
+const nodeStatusPath = "api/node/status/"
 
 // response from /api/node/status/. The key is a mangeled form
 // of the AP's MAC address, and should be ignored.
@@ -118,7 +118,7 @@ type nodeStatusResponse map[string]struct {
 	Statistics   Statistics `json:"statistics"`
 	Status       string     `json:"status"`
 	Statusid     int        `json:"statusid"`
-	Sysinfo      struct {
+	Sysinfo      *struct {
 		Load   float64 `json:"load"`
 		Uptime uint    `json:"uptime"`
 	} `json:"sysinfo"`
