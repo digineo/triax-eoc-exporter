@@ -16,12 +16,13 @@ import (
 	_ "github.com/digineo/triax-eoc-exporter/backend/v3"
 )
 
-func (cfg *Config) Start(listenAddress, version string) {
+func (cfg *Config) Start(listenAddress, version, date string) {
 	router := httprouter.New()
 	router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		tmpl.Execute(w, &indexVariables{
 			Controllers: cfg.Controllers,
 			Version:     version,
+			Date:        date,
 		})
 	})
 
@@ -30,7 +31,7 @@ func (cfg *Config) Start(listenAddress, version string) {
 	router.GET("/controllers/:target/api/*path", cfg.targetMiddleware(cfg.apiHandler))
 	//router.PUT("/controllers/:target/nodes/:mac", cfg.targetMiddleware(cfg.updateNodeHandler))
 
-	slog.Info("Starting exporter", "listenAddress", listenAddress)
+	slog.Info("Starting exporter", "listenAddress", listenAddress, "version", version, "builtDate", date)
 	slog.Info("Server stopped", "reason", http.ListenAndServe(listenAddress, router))
 }
 
@@ -124,6 +125,7 @@ func (cfg *Config) apiHandler(client *client.Client, w http.ResponseWriter, r *h
 type indexVariables struct {
 	Controllers []Controller
 	Version     string
+	Date        string
 }
 
 var tmpl = template.Must(template.New("index").Option("missingkey=error").Parse(`<!doctype html>
@@ -134,7 +136,10 @@ var tmpl = template.Must(template.New("index").Option("missingkey=error").Parse(
 </head>
 <body>
 	<h1>Triax EoC Exporter</h1>
-	<p>Version: {{.Version}}</p>
+	<p>
+		Version: {{.Version}}<br>
+		Built at: {{.Date}}
+	</p>
 
 	<h2>Controllers</h2>
 	<p><a href="/controllers">List as JSON</a></p>

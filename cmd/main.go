@@ -51,7 +51,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	cfg.Start(*listenAddress, version)
+	cfg.Start(*listenAddress, version, date)
 }
 
 func initLogger(verbose bool) {
