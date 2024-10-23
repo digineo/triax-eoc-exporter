@@ -13,7 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	_ "github.com/digineo/triax-eoc-exporter/backend/v2"
 	_ "github.com/digineo/triax-eoc-exporter/backend/v3"
 )
 
