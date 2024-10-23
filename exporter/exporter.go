@@ -28,8 +28,8 @@ func (cfg *Config) Start(listenAddress, version, date string) {
 
 	router.GET("/controllers", cfg.listControllersHandler)
 	router.GET("/controllers/:target/metrics", cfg.targetMiddleware(cfg.metricsHandler))
-	router.GET("/controllers/:target/api/*path", cfg.targetMiddleware(cfg.apiHandler))
-	//router.PUT("/controllers/:target/nodes/:mac", cfg.targetMiddleware(cfg.updateNodeHandler))
+	router.GET("/controllers/:target/config", cfg.targetMiddleware(cfg.getConfigHandler))
+	router.POST("/controllers/:target/config", cfg.targetMiddleware(cfg.updateConfigHandler))
 
 	slog.Info("Starting exporter", "listenAddress", listenAddress, "version", version, "builtDate", date)
 	slog.Info("Server stopped", "reason", http.ListenAndServe(listenAddress, router))
@@ -77,28 +77,21 @@ func (cfg *Config) metricsHandler(client *client.Client, w http.ResponseWriter, 
 	h.ServeHTTP(w, r)
 }
 
-/*
-// handler for updating nodes
-func (cfg *Config) updateNodeHandler(client *client.Client, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+// handler for updating configs
+
+func (cfg *Config) updateConfigHandler(client *client.Client, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	defer r.Body.Close()
 
-	// parse MAC address parameter
-	mac, err := net.ParseMAC(params.ByName("mac"))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("invalid MAC address: %s", err), http.StatusBadRequest)
-		return
-	}
+	jsonBody := json.RawMessage{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&jsonBody)
 
-	// decode request body
-	req := triax.UpdateRequest{}
-	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// execute update
-	err = client.UpdateNode(r.Context(), mac, req)
+	err = client.SetConfig(r.Context(), jsonBody)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
@@ -106,20 +99,17 @@ func (cfg *Config) updateNodeHandler(client *client.Client, w http.ResponseWrite
 
 	w.WriteHeader(http.StatusNoContent)
 }
-*/
 
-// proxy handler for API GET requests.
-func (cfg *Config) apiHandler(client *client.Client, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	defer r.Body.Close()
+// handler for getting configs
+func (cfg *Config) getConfigHandler(client *client.Client, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	config, err := client.GetConfig(r.Context())
 
-	msg := json.RawMessage{}
-	err := client.Get(r.Context(), params.ByName("path"), &msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
 
-	io.Copy(w, bytes.NewReader(msg))
+	io.Copy(w, bytes.NewReader(config))
 }
 
 type indexVariables struct {
@@ -148,7 +138,7 @@ var tmpl = template.Must(template.New("index").Option("missingkey=error").Parse(
 		<dt>{{.Alias}}</dt>
 		<dd>
 			<a href="/controllers/{{.Alias}}/metrics">Metrics</a>,
-			<a href="/controllers/{{.Alias}}/api/node/status/">Status</a>
+			<a href="/controllers/{{.Alias}}/config">Config</a>
 		</dd>
 	{{end}}
 	</dl>

@@ -63,6 +63,22 @@ func (c *Client) Get(ctx context.Context, path string, res interface{}) error {
 	return c.ApiRequest(ctx, http.MethodGet, path, nil, res)
 }
 
+const luaConfigPath = "/cgi.lua/config"
+
+// GetConfig fetches the configuration from the controller
+func (c *Client) GetConfig(ctx context.Context) (json.RawMessage, error) {
+	msg := json.RawMessage{}
+	err := c.Get(ctx, luaConfigPath, &msg)
+	return msg, err
+}
+
+// SetConfig sets the configuration in the controller
+func (c *Client) SetConfig(ctx context.Context, raw json.RawMessage) error {
+	res := json.RawMessage{}
+	err := c.ApiRequest(ctx, http.MethodPost, luaConfigPath, raw, res)
+	return err
+}
+
 func (c *Client) SetCookie(nameAndValue string) {
 	i := strings.Index(nameAndValue, "=")
 	if i <= 0 {
