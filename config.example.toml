@@ -1,6 +1,6 @@
 [[eoc-controller]]
 
-alias = "my-controller"
-host  = "192.168.10.1"
-# port = 8443
+alias    = "my-controller"
+host     = "192.168.10.1"
+port     = 8443
 password = "admin"
