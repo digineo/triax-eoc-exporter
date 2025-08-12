@@ -15,6 +15,7 @@ var (
 	CtrlGhnNumRegistered = CtrlDesc("ghn_endpoints_registered", "number of endponts registered for a G.HN port", "port")
 
 	NodeLabel   = []string{"name"}
+	NodeInfo    = NodeDesc("info", "node infos", "serial", "mac", "model")
 	NodeStatus  = NodeDesc("status", "current endpoint status")
 	NodeUptime  = NodeDesc("uptime", "uptime of endpoint in seconds")
 	NodeOffline = NodeDesc("offline_since", "offline since unix timestamp")
@@ -27,8 +28,15 @@ var (
 	CounterPackets = NodeDesc("interface_packets", "total packets transmitted or received", LounterLabel...)
 	CounterErrors  = NodeDesc("interface_errors", "total number of errors", LounterLabel...)
 
-	GhnRxbps = NodeDesc("ghn_rxbps", "negotiated RX rate in bps")
-	GhnTxbps = NodeDesc("ghn_txbps", "negotiated TX rate in bps")
+	GhnRxbps      = NodeDesc("ghn_rxbps", "negotiated RX rate in bps")
+	GhnTxbps      = NodeDesc("ghn_txbps", "negotiated TX rate in bps")
+	GhnSnrMin     = NodeDesc("ghn_snr_min", "min SNR level in dBm", "side")
+	GhnSnrAvg     = NodeDesc("ghn_snr_avg", "avg SNR level in dBm", "side")
+	GhnSnrMax     = NodeDesc("ghn_snr_max", "max SNR level in dBm", "side")
+	GhnWireLength = NodeDesc("ghn_wire_length", "wire length in meters")
+
+	SIDE_ENDPOINT   = "endpoint"
+	SIDE_CONTROLLER = "controller"
 )
 
 func CtrlDesc(name, help string, extraLabel ...string) *prometheus.Desc {

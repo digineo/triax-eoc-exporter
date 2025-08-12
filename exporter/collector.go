@@ -28,11 +28,16 @@ func (t *triaxCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- types.CtrlGhnNumOnline
 	ch <- types.CtrlGhnNumRegistered
 
+	ch <- types.NodeInfo
 	ch <- types.NodeStatus
 	ch <- types.NodeUptime
 	ch <- types.NodeLoad
 	ch <- types.NodeGhnPort
 	ch <- types.NodeClients
+
+	ch <- types.GhnSnrMin
+	ch <- types.GhnSnrAvg
+	ch <- types.GhnSnrMax
 }
 
 func (t *triaxCollector) Collect(ch chan<- prometheus.Metric) {

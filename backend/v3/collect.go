@@ -45,9 +45,17 @@ func (b *backend) Collect(ctx context.Context, ch chan<- prometheus.Metric) erro
 		metric(types.CtrlGhnNumOnline, G, float64(modem.EndpointCount), number)
 	}
 
-	for _, node := range response.Remote {
+	// mapping from MAC addresses to names
+	macToName := make(map[string]string)
+
+	// Endpoint side
+	for mac, node := range response.Remote {
 		name := node.System.Name
 
+		// store name in mappings
+		macToName[mac] = name
+
+		metric(types.NodeInfo, G, 1, name, node.Serial, node.Mac, node.System.Model)
 		metric(types.NodeStatus, G, float64(node.State), name)
 
 		if uptime := node.System.Uptime; uptime != nil {
@@ -67,11 +75,33 @@ func (b *backend) Collect(ctx context.Context, ch chan<- prometheus.Metric) erro
 			counterMetric(&stats.Counters, name, fmt.Sprintf("wifi%d", stats.Band))
 		}
 
-		// ghn statistics
-		if ghn := node.Ghn; len(ghn) > 0 {
-			metric(types.GhnRxbps, G, float64(ghn[0].Bitrate.Rx), name)
-			metric(types.GhnTxbps, G, float64(ghn[0].Bitrate.Tx), name)
+		// G.hn statistics
+		if len(node.Ghn) > 0 && node.Ghn[0].Status != nil {
+			ghn := node.Ghn[0]
+			if ghn.Bitrate != nil {
+				metric(types.GhnRxbps, G, float64(ghn.Bitrate.Rx), name)
+				metric(types.GhnTxbps, G, float64(ghn.Bitrate.Tx), name)
+			}
+			if ghn.Snr != nil {
+				metric(types.GhnSnrMin, G, float64(ghn.Snr.Min), name, types.SIDE_ENDPOINT)
+				metric(types.GhnSnrAvg, G, float64(ghn.Snr.Avg), name, types.SIDE_ENDPOINT)
+				metric(types.GhnSnrMax, G, float64(ghn.Snr.Max), name, types.SIDE_ENDPOINT)
+
+			}
 		}
+	}
+
+	// Controller Side
+	for mac, node := range response.Ghn.Nodes {
+		name := macToName[mac]
+		if name == "" {
+			name = mac
+		}
+
+		metric(types.GhnWireLength, G, float64(node.WireLength), name)
+		metric(types.GhnSnrMin, G, float64(node.Snr.Min), name, types.SIDE_CONTROLLER)
+		metric(types.GhnSnrAvg, G, float64(node.Snr.Avg), name, types.SIDE_CONTROLLER)
+		metric(types.GhnSnrMax, G, float64(node.Snr.Max), name, types.SIDE_CONTROLLER)
 	}
 
 	return nil

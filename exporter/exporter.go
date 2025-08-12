@@ -78,7 +78,6 @@ func (cfg *Config) metricsHandler(client *client.Client, w http.ResponseWriter, 
 }
 
 // handler for updating configs
-
 func (cfg *Config) updateConfigHandler(client *client.Client, w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	defer r.Body.Close()
 

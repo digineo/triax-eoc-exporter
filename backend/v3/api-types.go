@@ -254,29 +254,29 @@ type Remote struct {
 		RetxPercent float32 `json:"retx_percent"`
 		Clients     int     `json:"clients"`
 		Label       string  `json:"label"`
-		Snr         struct {
+		Snr         *struct {
 			Min float64 `json:"min"`
 			Avg float64 `json:"avg"`
 			Max float64 `json:"max"`
 		} `json:"snr"`
 		Port       int     `json:"port"`
-		Status     bool    `json:"status"`
+		Status     *bool   `json:"status"`
 		FecPercent float32 `json:"fec_percent"`
 		Ipv4       string  `json:"ipv4"`
 		Enabled    bool    `json:"enabled"`
-		Noise      struct {
+		Noise      *struct {
 			Min float64 `json:"min"`
 			Agc int     `json:"agc"`
 			Avg float64 `json:"avg"`
 			Max float64 `json:"max"`
 		} `json:"noise"`
-		Power struct {
+		Power *struct {
 			Min float64 `json:"min"`
 			Agc int     `json:"agc"`
 			Avg float64 `json:"avg"`
 			Max float64 `json:"max"`
 		} `json:"power"`
-		Bitrate struct {
+		Bitrate *struct {
 			Tx int `json:"tx"`
 			Rx int `json:"rx"`
 		} `json:"bitrate"`
